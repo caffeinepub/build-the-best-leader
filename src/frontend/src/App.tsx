@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   CheckCircle2,
   ChevronRight,
@@ -16,21 +17,31 @@ import { useGetLeaderboard, useSubmitEntry } from "./hooks/useQueries";
 type Step = "start" | "team" | "traits" | "results" | "leaderboard";
 
 const ALL_TRAITS: { name: string; score: number }[] = [
-  { name: "Visionary", score: 5 },
-  { name: "Strategic Thinker", score: 4 },
-  { name: "Empathetic", score: 4 },
-  { name: "Good Listener", score: 3 },
-  { name: "Inspires Others", score: 3 },
-  { name: "Collaborative", score: 3 },
-  { name: "Ethical", score: 4 },
-  { name: "Resilient", score: 3 },
-  { name: "Arrogant", score: -3 },
-  { name: "Doesn't Listen", score: -4 },
-  { name: "Needs Admiration", score: -3 },
-  { name: "Manipulative", score: -3 },
-  { name: "Impulsive", score: -2 },
-  { name: "Overconfident", score: -3 },
-  { name: "Rejects Feedback", score: -4 },
+  { name: "Drinks 5 Cups of Coffee a Day", score: 1 },
+  { name: "Writes Motivational LinkedIn Posts", score: 0 },
+  { name: 'Starts Meetings With "Big Idea!"', score: 2 },
+  { name: "Uses Way Too Many Buzzwords", score: -2 },
+  { name: "Always Carries a Fancy Notebook", score: 1 },
+  { name: 'Sleeps 3 Hours Because "Hustle"', score: -1 },
+  { name: 'Says "Let\'s Circle Back" Every Meeting', score: -1 },
+  { name: "Gives Random Inspirational Speeches", score: 1 },
+  { name: "Owns 7 Blazers", score: 0 },
+  { name: "Thinks Every Idea Is Genius", score: -3 },
+  { name: "Talks for 20 Minutes Without Pausing", score: -2 },
+  { name: "Has a Vision Board for Everything", score: 1 },
+  { name: "Changes Strategy Every Monday", score: -3 },
+  { name: 'Calls Everything "Game Changing"', score: -1 },
+  { name: "Brags About Being Busy All the Time", score: -2 },
+  { name: 'Always Says "Trust the Process"', score: 1 },
+  { name: "Schedules Meetings That Could Be Emails", score: -2 },
+  { name: "Loves Whiteboard Brainstorms", score: 1 },
+  { name: "Reads One Business Book and Becomes a Guru", score: -2 },
+  { name: "Quotes Famous CEOs Constantly", score: 0 },
+  { name: 'Starts Every Sentence With "In My Experience…"', score: -1 },
+  { name: "Brings Snacks to Every Meeting", score: 2 },
+  { name: "Always Asks the Team for Opinions", score: 3 },
+  { name: "Actually Listens to Feedback", score: 3 },
+  { name: "Admits When They're Wrong", score: 3 },
 ];
 
 function shuffleArray<T>(arr: T[]): T[] {
@@ -46,12 +57,12 @@ function shuffleArray<T>(arr: T[]): T[] {
 
 const AVATAR_MAP = [
   {
-    minScore: 15,
+    minScore: 10,
     src: "/assets/generated/avatar-visionary-hero-transparent.dim_400x400.png",
     label: "Visionary Hero leader avatar",
   },
   {
-    minScore: 5,
+    minScore: 4,
     src: "/assets/generated/avatar-confident-leader-transparent.dim_400x400.png",
     label: "Confident Leader avatar",
   },
@@ -385,7 +396,7 @@ function ResultsScreen({
   totalScore: number;
   onViewLeaderboard: () => void;
 }) {
-  const { mutate: submitEntry, isPending, isSuccess } = useSubmitEntry();
+  const { mutate: submitEntry, isPending } = useSubmitEntry();
 
   // Submit exactly once on mount
   const submitted = useRef(false);
@@ -396,9 +407,9 @@ function ResultsScreen({
   }, [submitEntry, teamName, selectedTraits, totalScore]);
 
   const getScoreLabel = () => {
-    if (totalScore >= 14)
+    if (totalScore >= 10)
       return { label: "Visionary Hero", color: "text-primary" };
-    if (totalScore >= 5)
+    if (totalScore >= 4)
       return { label: "Confident Leader", color: "text-primary" };
     if (totalScore >= 0)
       return { label: "Average Leader", color: "text-muted-foreground" };
@@ -486,31 +497,21 @@ function ResultsScreen({
             </div>
           </motion.div>
 
-          {/* Submission status */}
-          {isPending && (
-            <div
-              data-ocid="results.loading_state"
-              className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-4"
-            >
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Saving your score...
-            </div>
-          )}
-
           <Button
             data-ocid="results.primary_button"
             onClick={onViewLeaderboard}
+            disabled={isPending}
             size="lg"
-            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-6 rounded-xl transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-6 rounded-xl transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {isSuccess ? (
+            {isPending ? (
               <>
-                <Trophy className="mr-2 w-5 h-5" />
-                View Leaderboard
+                <Loader2 className="mr-2 w-5 h-5 animate-spin" />
+                Saving score...
               </>
             ) : (
               <>
-                <ChevronRight className="mr-2 w-5 h-5" />
+                <Trophy className="mr-2 w-5 h-5" />
                 View Leaderboard
               </>
             )}
@@ -524,7 +525,13 @@ function ResultsScreen({
 // ─── Leaderboard Screen ────────────────────────────────────────────────────────
 
 function LeaderboardScreen({ onPlayAgain }: { onPlayAgain: () => void }) {
+  const queryClient = useQueryClient();
   const { data: entries = [], isLoading } = useGetLeaderboard();
+
+  // Force a fresh fetch immediately when this screen mounts
+  useEffect(() => {
+    queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
+  }, [queryClient]);
   const sorted = [...entries].sort(
     (a, b) => Number(b.totalScore) - Number(a.totalScore),
   );
