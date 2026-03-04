@@ -11,13 +11,13 @@ import { IDL } from '@icp-sdk/core/candid';
 export const TeamEntry = IDL.Record({
   'teamName' : IDL.Text,
   'traits' : IDL.Vec(IDL.Text),
-  'totalScore' : IDL.Nat,
+  'totalScore' : IDL.Int,
 });
 
 export const idlService = IDL.Service({
   'getLeaderboard' : IDL.Func([], [IDL.Vec(TeamEntry)], ['query']),
   'resetLeaderboard' : IDL.Func([], [], []),
-  'submitEntry' : IDL.Func([IDL.Text, IDL.Vec(IDL.Text), IDL.Nat], [], []),
+  'submitEntry' : IDL.Func([IDL.Text, IDL.Vec(IDL.Text), IDL.Int], [], []),
 });
 
 export const idlInitArgs = [];
@@ -26,13 +26,13 @@ export const idlFactory = ({ IDL }) => {
   const TeamEntry = IDL.Record({
     'teamName' : IDL.Text,
     'traits' : IDL.Vec(IDL.Text),
-    'totalScore' : IDL.Nat,
+    'totalScore' : IDL.Int,
   });
   
   return IDL.Service({
     'getLeaderboard' : IDL.Func([], [IDL.Vec(TeamEntry)], ['query']),
     'resetLeaderboard' : IDL.Func([], [], []),
-    'submitEntry' : IDL.Func([IDL.Text, IDL.Vec(IDL.Text), IDL.Nat], [], []),
+    'submitEntry' : IDL.Func([IDL.Text, IDL.Vec(IDL.Text), IDL.Int], [], []),
   });
 };
 

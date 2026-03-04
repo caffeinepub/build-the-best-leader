@@ -6,6 +6,7 @@ import {
   ChevronRight,
   Crown,
   Loader2,
+  Monitor,
   Trophy,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
@@ -92,9 +93,183 @@ function LeaderAvatar({ score }: { score: number }) {
   );
 }
 
+// ─── Live Indicator ─────────────────────────────────────────────────────────────
+
+function LiveIndicator({ className = "" }: { className?: string }) {
+  return (
+    <span
+      data-ocid="leaderboard.live_indicator"
+      className={`inline-flex items-center gap-1.5 ${className}`}
+    >
+      <span className="relative flex h-2.5 w-2.5">
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75" />
+        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
+      </span>
+      <span className="text-xs font-semibold text-green-600 uppercase tracking-wider">
+        Live
+      </span>
+    </span>
+  );
+}
+
+// ─── Host View ─────────────────────────────────────────────────────────────────
+
+function HostView() {
+  const { data: entries = [], isLoading } = useGetLeaderboard();
+  const sorted = [...entries].sort(
+    (a, b) => Number(b.totalScore) - Number(a.totalScore),
+  );
+
+  const rankDisplay = (i: number) => {
+    if (i === 0) return <span className="text-4xl">🥇</span>;
+    if (i === 1) return <span className="text-4xl">🥈</span>;
+    if (i === 2) return <span className="text-4xl">🥉</span>;
+    return (
+      <span className="text-2xl font-black text-muted-foreground w-10 text-center">
+        {i + 1}
+      </span>
+    );
+  };
+
+  return (
+    <div
+      data-ocid="host.leaderboard_view"
+      className="min-h-screen bg-background flex flex-col"
+    >
+      {/* Header */}
+      <header className="py-8 px-8 border-b border-gold/20 bg-surface-raised/50">
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-full bg-primary/10 border-2 border-gold/30 flex items-center justify-center">
+              <Crown className="w-9 h-9 text-gold" />
+            </div>
+            <div>
+              <h1 className="text-3xl md:text-4xl font-black tracking-tight text-foreground leading-tight">
+                Build the Best Leader
+              </h1>
+              <p className="text-xl font-semibold text-muted-foreground">
+                Live Leaderboard
+              </p>
+            </div>
+          </div>
+          <LiveIndicator className="scale-150 origin-right" />
+        </div>
+      </header>
+
+      {/* Board */}
+      <main className="flex-1 py-10 px-8">
+        <div className="max-w-4xl mx-auto">
+          {isLoading ? (
+            <div
+              data-ocid="host.leaderboard.loading_state"
+              className="flex flex-col items-center justify-center py-32 text-muted-foreground"
+            >
+              <Loader2 className="w-10 h-10 animate-spin mb-4" />
+              <p className="text-2xl font-semibold">Loading scores...</p>
+            </div>
+          ) : sorted.length === 0 ? (
+            <div
+              data-ocid="host.leaderboard.empty_state"
+              className="flex flex-col items-center justify-center py-32 text-muted-foreground"
+            >
+              <Crown className="w-16 h-16 mb-6 text-border" />
+              <p className="text-3xl font-black mb-2">Waiting for teams...</p>
+              <p className="text-xl">Scores will appear here as teams submit</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {sorted.map((entry, i) => {
+                const score = Number(entry.totalScore);
+                return (
+                  <motion.div
+                    key={`${entry.teamName}-${i}`}
+                    data-ocid={`host.leaderboard.row.${i + 1}`}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.06 }}
+                    className={`flex items-center gap-6 px-8 py-6 rounded-2xl border-2 ${
+                      i === 0
+                        ? "bg-primary/10 border-gold/40 shadow-gold"
+                        : i === 1
+                          ? "bg-card border-border/80"
+                          : i === 2
+                            ? "bg-card border-border/60"
+                            : "bg-card/50 border-border/30"
+                    }`}
+                  >
+                    {/* Rank */}
+                    <div className="flex items-center justify-center w-14 flex-shrink-0">
+                      {rankDisplay(i)}
+                    </div>
+
+                    {/* Rank number for top 3 */}
+                    {i < 3 && (
+                      <div className="w-10 flex-shrink-0 text-center">
+                        <span className="text-xl font-black text-muted-foreground">
+                          #{i + 1}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Team Name */}
+                    <div className="flex-1 min-w-0">
+                      <p
+                        className={`font-black text-2xl truncate ${
+                          i === 0 ? "text-primary" : "text-foreground"
+                        }`}
+                      >
+                        {entry.teamName}
+                      </p>
+                    </div>
+
+                    {/* Score */}
+                    <div
+                      className={`text-4xl font-black flex-shrink-0 ${
+                        score > 0
+                          ? "text-primary"
+                          : score < 0
+                            ? "text-destructive"
+                            : "text-muted-foreground"
+                      }`}
+                    >
+                      {score > 0 ? "+" : ""}
+                      {score}
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="py-4 text-center border-t border-gold/10">
+        <p className="text-sm text-muted-foreground/50">
+          © {new Date().getFullYear()}. Built with{" "}
+          <span className="text-red-500/60">♥</span> using{" "}
+          <a
+            href={`https://caffeine.ai?utm_source=caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(typeof window !== "undefined" ? window.location.hostname : "")}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-gold/60 hover:text-gold transition-colors"
+          >
+            caffeine.ai
+          </a>
+        </p>
+      </footer>
+    </div>
+  );
+}
+
 // ─── Start Screen ──────────────────────────────────────────────────────────────
 
 function StartScreen({ onStart }: { onStart: () => void }) {
+  const handleHostView = () => {
+    const url = window.location.href.split("?")[0];
+    window.open(`${url}?host=true`, "_blank");
+  };
+
   return (
     <motion.div
       key="start"
@@ -164,20 +339,32 @@ function StartScreen({ onStart }: { onStart: () => void }) {
           Choose leadership traits and see who creates the best leader.
         </motion.p>
 
-        {/* Start Button */}
+        {/* Buttons */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.7 }}
+          className="flex flex-col items-center gap-3 w-full max-w-xs"
         >
           <Button
             data-ocid="start.primary_button"
             onClick={onStart}
             size="lg"
-            className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-lg px-10 py-6 rounded-2xl shadow-gold transition-all duration-200 hover:scale-105 active:scale-95"
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-lg px-10 py-6 rounded-2xl shadow-gold transition-all duration-200 hover:scale-105 active:scale-95"
           >
             Start Game
             <ChevronRight className="ml-2 w-5 h-5" />
+          </Button>
+
+          <Button
+            data-ocid="start.host_view_button"
+            onClick={handleHostView}
+            variant="outline"
+            size="sm"
+            className="w-full border-primary/30 text-primary/80 hover:bg-primary/5 hover:text-primary font-semibold rounded-xl transition-all duration-200"
+          >
+            <Monitor className="mr-2 w-4 h-4" />
+            Host View — for projecting the leaderboard
           </Button>
         </motion.div>
       </div>
@@ -532,6 +719,7 @@ function LeaderboardScreen({ onPlayAgain }: { onPlayAgain: () => void }) {
   useEffect(() => {
     queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
   }, [queryClient]);
+
   const sorted = [...entries].sort(
     (a, b) => Number(b.totalScore) - Number(a.totalScore),
   );
@@ -562,12 +750,15 @@ function LeaderboardScreen({ onPlayAgain }: { onPlayAgain: () => void }) {
           <div className="w-16 h-16 rounded-full bg-primary/10 border-2 border-primary/30 flex items-center justify-center mx-auto mb-4">
             <Trophy className="w-8 h-8 text-primary" />
           </div>
-          <h2 className="text-3xl md:text-4xl font-black text-foreground mb-1">
+          <h2 className="text-3xl md:text-4xl font-black text-foreground mb-2">
             Leaderboard
           </h2>
-          <p className="text-muted-foreground text-sm">
-            Auto-updates every 5 seconds
-          </p>
+          <div className="flex items-center justify-center gap-2">
+            <LiveIndicator />
+            <span className="text-muted-foreground text-sm">
+              updates every 2 seconds
+            </span>
+          </div>
         </div>
 
         {/* Table */}
@@ -591,45 +782,56 @@ function LeaderboardScreen({ onPlayAgain }: { onPlayAgain: () => void }) {
             </div>
           ) : (
             <div className="divide-y divide-border">
-              {sorted.map((entry, i) => (
-                <motion.div
-                  key={`${entry.teamName}-${i}`}
-                  data-ocid={`leaderboard.row.${i + 1}` as string}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  className={`flex items-center px-5 py-4 gap-4 ${
-                    i === 0 ? "bg-primary/5" : ""
-                  }`}
-                >
-                  <div className="flex items-center justify-center w-6 flex-shrink-0">
-                    {rankMedal(i)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p
-                      className={`font-bold text-base truncate ${i === 0 ? "text-primary" : "text-foreground"}`}
-                    >
-                      {entry.teamName}
-                    </p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {entry.traits.slice(0, 3).join(", ")}
-                      {entry.traits.length > 3 ? "…" : ""}
-                    </p>
-                  </div>
-                  <div
-                    className={`text-xl font-black flex-shrink-0 ${
-                      Number(entry.totalScore) > 0
-                        ? "text-primary"
-                        : Number(entry.totalScore) < 0
-                          ? "text-destructive"
-                          : "text-muted-foreground"
+              {sorted.map((entry, i) => {
+                const score = Number(entry.totalScore);
+                return (
+                  <motion.div
+                    key={`${entry.teamName}-${i}`}
+                    data-ocid={`leaderboard.row.${i + 1}`}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                    className={`flex items-center px-5 py-4 gap-3 ${
+                      i === 0 ? "bg-primary/5" : ""
                     }`}
                   >
-                    {Number(entry.totalScore) > 0 ? "+" : ""}
-                    {Number(entry.totalScore)}
-                  </div>
-                </motion.div>
-              ))}
+                    {/* Medal + rank number */}
+                    <div className="flex items-center gap-1.5 flex-shrink-0 min-w-[3rem]">
+                      <div className="flex items-center justify-center w-5">
+                        {rankMedal(i)}
+                      </div>
+                      {i < 3 && (
+                        <span className="text-xs font-bold text-muted-foreground">
+                          #{i + 1}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p
+                        className={`font-bold text-base truncate ${i === 0 ? "text-primary" : "text-foreground"}`}
+                      >
+                        {entry.teamName}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {entry.traits.slice(0, 3).join(", ")}
+                        {entry.traits.length > 3 ? "…" : ""}
+                      </p>
+                    </div>
+                    <div
+                      className={`text-xl font-black flex-shrink-0 ${
+                        score > 0
+                          ? "text-primary"
+                          : score < 0
+                            ? "text-destructive"
+                            : "text-muted-foreground"
+                      }`}
+                    >
+                      {score > 0 ? "+" : ""}
+                      {score}
+                    </div>
+                  </motion.div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -658,6 +860,11 @@ export default function App() {
   const [selectedTraits, setSelectedTraits] = useState<string[]>([]);
   const [totalScore, setTotalScore] = useState(0);
 
+  // Check for host view mode
+  const isHostView =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("host") === "true";
+
   // Shuffle once on mount, stable for the session
   const shuffledTraits = useMemo(() => shuffleArray(ALL_TRAITS), []);
 
@@ -678,6 +885,11 @@ export default function App() {
     setTotalScore(0);
     setStep("team");
   };
+
+  // Host view — fullscreen leaderboard for projector
+  if (isHostView) {
+    return <HostView />;
+  }
 
   return (
     <div className="min-h-screen bg-background">

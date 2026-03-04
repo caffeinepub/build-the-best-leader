@@ -11,7 +11,7 @@ export function useGetLeaderboard() {
       return actor.getLeaderboard();
     },
     enabled: !!actor && !isFetching,
-    refetchInterval: 5000,
+    refetchInterval: 2000,
   });
 }
 
