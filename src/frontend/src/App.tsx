@@ -146,9 +146,17 @@ function HostView() {
               <h1 className="text-3xl md:text-4xl font-black tracking-tight text-foreground leading-tight">
                 Build the Best Leader
               </h1>
-              <p className="text-xl font-semibold text-muted-foreground">
-                Live Leaderboard
-              </p>
+              <div className="flex items-center gap-3 mt-0.5">
+                <p className="text-xl font-semibold text-muted-foreground">
+                  Live Leaderboard
+                </p>
+                {!isLoading && sorted.length > 0 && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-bold">
+                    <Trophy className="w-3.5 h-3.5" />
+                    {sorted.length} {sorted.length === 1 ? "team" : "teams"}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
           <LiveIndicator className="scale-150 origin-right" />
@@ -176,7 +184,7 @@ function HostView() {
               <p className="text-xl">Scores will appear here as teams submit</p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="max-h-[65vh] overflow-y-auto space-y-3 pr-1">
               {sorted.map((entry, i) => {
                 const score = Number(entry.totalScore);
                 return (
@@ -758,12 +766,21 @@ function LeaderboardScreen({ onPlayAgain }: { onPlayAgain: () => void }) {
           <h2 className="text-3xl md:text-4xl font-black text-foreground mb-2">
             Leaderboard
           </h2>
-          <div className="flex items-center justify-center gap-2">
+          <div className="flex items-center justify-center gap-2 mb-2">
             <LiveIndicator />
             <span className="text-muted-foreground text-sm">
               updates every 2 seconds
             </span>
           </div>
+          {!isLoading && sorted.length > 0 && (
+            <div className="flex items-center justify-center">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold tracking-wide">
+                <Trophy className="w-3 h-3" />
+                {sorted.length} {sorted.length === 1 ? "team" : "teams"}{" "}
+                competing
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Table */}
@@ -786,7 +803,7 @@ function LeaderboardScreen({ onPlayAgain }: { onPlayAgain: () => void }) {
               <p className="text-sm">Be the first to submit!</p>
             </div>
           ) : (
-            <div className="divide-y divide-border">
+            <div className="max-h-[60vh] overflow-y-auto divide-y divide-border">
               {sorted.map((entry, i) => {
                 const score = Number(entry.totalScore);
                 return (
