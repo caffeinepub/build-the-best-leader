@@ -12,6 +12,8 @@ export function useGetLeaderboard() {
     },
     enabled: !!actor && !isFetching,
     refetchInterval: 2000,
+    staleTime: 0,
+    gcTime: 0,
   });
 }
 

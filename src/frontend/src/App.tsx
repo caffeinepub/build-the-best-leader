@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useQueryClient } from "@tanstack/react-query";
 import {
   CheckCircle2,
   ChevronRight,
@@ -583,14 +582,17 @@ function ResultsScreen({
   totalScore: number;
   onViewLeaderboard: () => void;
 }) {
-  const { mutate: submitEntry, isPending } = useSubmitEntry();
+  const { mutateAsync: submitEntry, isPending } = useSubmitEntry();
 
   // Submit exactly once on mount
   const submitted = useRef(false);
   useEffect(() => {
     if (submitted.current) return;
     submitted.current = true;
-    submitEntry({ teamName, traits: selectedTraits, totalScore });
+    submitEntry({ teamName, traits: selectedTraits, totalScore }).catch(() => {
+      // allow retry via button
+      submitted.current = false;
+    });
   }, [submitEntry, teamName, selectedTraits, totalScore]);
 
   const getScoreLabel = () => {
@@ -686,15 +688,19 @@ function ResultsScreen({
 
           <Button
             data-ocid="results.primary_button"
-            onClick={onViewLeaderboard}
-            disabled={isPending}
+            onClick={() => {
+              // Always allow navigation to leaderboard.
+              // If still saving, navigate anyway — the leaderboard polls every 2s
+              // and will pick up the score once the save completes.
+              onViewLeaderboard();
+            }}
             size="lg"
-            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-6 rounded-xl transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-6 rounded-xl transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
           >
             {isPending ? (
               <>
                 <Loader2 className="mr-2 w-5 h-5 animate-spin" />
-                Saving score...
+                Saving & Viewing Leaderboard...
               </>
             ) : (
               <>
@@ -712,13 +718,12 @@ function ResultsScreen({
 // ─── Leaderboard Screen ────────────────────────────────────────────────────────
 
 function LeaderboardScreen({ onPlayAgain }: { onPlayAgain: () => void }) {
-  const queryClient = useQueryClient();
-  const { data: entries = [], isLoading } = useGetLeaderboard();
+  const { data: entries = [], isLoading, refetch } = useGetLeaderboard();
 
   // Force a fresh fetch immediately when this screen mounts
   useEffect(() => {
-    queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
-  }, [queryClient]);
+    refetch();
+  }, [refetch]);
 
   const sorted = [...entries].sort(
     (a, b) => Number(b.totalScore) - Number(a.totalScore),

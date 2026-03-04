@@ -1,36 +1,19 @@
 # Build the Best Leader
 
 ## Current State
-- Full 5-step game flow: Start → Team Name → Trait Selection → Results → Leaderboard
-- Backend stores `TeamEntry` with `totalScore: Nat` (unsigned) — corrupts negative scores
-- Frontend polls leaderboard every 5 seconds via `refetchInterval`
-- No host/projection view
-- No URL-based direct leaderboard access
+Full game app is working (start screen, team name, trait selection, results, leaderboard). The backend uses `mo:core/Map` with `Map.empty()` and calls `entries.add(...)` and `entries.clear()`. This is an immutable functional map -- mutations are not persisted between calls, so submitted entries are never stored and the leaderboard always returns empty.
 
 ## Requested Changes (Diff)
 
 ### Add
-- Host view accessible via `?host=true` URL param — fullscreen leaderboard auto-updates, no play-again button, designed for projection
-- Start screen "Host View" link that opens `?host=true` in a new tab
-- Faster polling (2s instead of 5s) when on the leaderboard or host view
-- Rank number column on leaderboard (1, 2, 3... not just medals)
+- Nothing new
 
 ### Modify
-- Backend: change `totalScore` from `Nat` to `Int` so negative scores store and retrieve correctly
-- Frontend `useSubmitEntry`: pass `totalScore` as `bigint` directly (already done), but must match new `Int` backend type
-- `useGetLeaderboard`: reduce refetchInterval to 2000ms for near-real-time feel
-- Leaderboard display: show explicit rank number alongside medal emoji for top 3
-- Footer note: update from "Auto-updates every 5 seconds" to "Auto-updates every 2 seconds"
+- Backend: Replace `mo:core/Map` (immutable) with `mo:base/HashMap` (mutable). Use `HashMap.HashMap` with `Text.equal` and `Text.hash`. Replace `entries.add(k, v)` with `entries.put(k, v)`. Replace `entries.values().toArray()` with `Iter.toArray(entries.vals())`. Replace `entries.clear()` with iterating keys and calling `entries.remove(key)`.
 
 ### Remove
-- Nothing removed
+- Nothing
 
 ## Implementation Plan
-1. Update backend `main.mo`: change `totalScore: Nat` → `totalScore: Int` in `TeamEntry` type and `submitEntry` signature; fix compare logic to use `Int` comparison
-2. Regenerate `backend.d.ts` to reflect `totalScore: bigint` (already bigint in TS, no change needed in frontend types)
-3. Update `useQueries.ts`: reduce `refetchInterval` to 2000
-4. Update `App.tsx`:
-   - Add `?host=true` detection at app root — render `HostView` fullscreen if present
-   - Add "Host View" button on StartScreen that opens `?host=true`
-   - Update leaderboard subtitle text
-   - `HostView` component: fullscreen dark leaderboard, no game nav, polls every 2s, shows rank + team + score
+1. Regenerate Motoko backend using mutable `HashMap` from `mo:base` so that submitted team entries are actually persisted across canister calls.
+2. Deploy.

@@ -1,33 +1,25 @@
 import Map "mo:core/Map";
+import Array "mo:core/Array";
+import Int "mo:core/Int";
+import Order "mo:core/Order";
 import Text "mo:core/Text";
 
 module {
-  type OldTeamEntry = {
-    teamName : Text;
-    traits : [Text];
-    totalScore : Nat;
-  };
-
-  type OldActor = {
-    entries : Map.Map<Text, OldTeamEntry>;
-  };
-
-  type NewTeamEntry = {
+  type TeamEntry = {
     teamName : Text;
     traits : [Text];
     totalScore : Int;
   };
 
+  type OldActor = {
+    entries : Map.Map<Text, TeamEntry>;
+  };
+
   type NewActor = {
-    entries : Map.Map<Text, NewTeamEntry>;
+    var entriesArray : [TeamEntry];
   };
 
   public func run(old : OldActor) : NewActor {
-    let newEntries = old.entries.map<Text, OldTeamEntry, NewTeamEntry>(
-      func(_k, oldEntry) {
-        { oldEntry with totalScore = oldEntry.totalScore.toInt() };
-      }
-    );
-    { entries = newEntries };
+    { var entriesArray = old.entries.values().toArray() };
   };
 };
