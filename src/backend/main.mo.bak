@@ -3,8 +3,6 @@ import Int "mo:core/Int";
 import Order "mo:core/Order";
 import Text "mo:core/Text";
 
-
-
 actor {
   type TeamEntry = {
     teamName : Text;
@@ -12,7 +10,7 @@ actor {
     totalScore : Int;
   };
 
-  stable var entriesArray : [TeamEntry] = [];
+  var entriesArray : [TeamEntry] = [];
 
   public shared ({ caller }) func submitEntry(teamName : Text, traits : [Text], totalScore : Int) : async () {
     let filtered = entriesArray.filter(

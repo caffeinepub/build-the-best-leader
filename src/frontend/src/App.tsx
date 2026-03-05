@@ -1,20 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  CheckCircle2,
-  ChevronRight,
-  Crown,
-  Loader2,
-  Monitor,
-  Trophy,
-} from "lucide-react";
+import { CheckCircle2, ChevronRight, Crown, Loader2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useGetLeaderboard, useSubmitEntry } from "./hooks/useQueries";
+import { useMemo, useState } from "react";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
-type Step = "start" | "team" | "traits" | "results" | "leaderboard";
+type Step = "start" | "team" | "traits" | "results";
 
 const ALL_TRAITS: { name: string; score: number }[] = [
   { name: "Drinks 5 Cups of Coffee a Day", score: 1 },
@@ -55,228 +47,46 @@ function shuffleArray<T>(arr: T[]): T[] {
 
 // ─── Avatar Image ──────────────────────────────────────────────────────────────
 
-const AVATAR_MAP = [
-  {
-    minScore: 10,
-    src: "/assets/generated/avatar-visionary-hero-transparent.dim_400x400.png",
-    label: "Visionary Hero leader avatar",
-  },
-  {
-    minScore: 4,
-    src: "/assets/generated/avatar-confident-leader-transparent.dim_400x400.png",
-    label: "Confident Leader avatar",
-  },
-  {
-    minScore: 0,
-    src: "/assets/generated/avatar-average-leader-transparent.dim_400x400.png",
-    label: "Average Leader avatar",
-  },
-  {
-    minScore: Number.NEGATIVE_INFINITY,
-    src: "/assets/generated/avatar-struggling-leader-transparent.dim_400x400.png",
-    label: "Struggling Leader avatar",
-  },
-] as const;
-
 function LeaderAvatar({ score }: { score: number }) {
-  const avatar =
-    AVATAR_MAP.find((a) => score >= a.minScore) ??
-    AVATAR_MAP[AVATAR_MAP.length - 1];
-
+  if (score >= 10) {
+    return (
+      <img
+        src="/assets/generated/avatar-visionary-hero-transparent.dim_400x400.png"
+        alt="Visionary Hero"
+        className="w-36 h-36 object-contain drop-shadow-md"
+      />
+    );
+  }
+  if (score >= 4) {
+    return (
+      <img
+        src="/assets/generated/avatar-confident-leader-transparent.dim_400x400.png"
+        alt="Confident Leader"
+        className="w-36 h-36 object-contain drop-shadow-md"
+      />
+    );
+  }
+  if (score >= 0) {
+    return (
+      <img
+        src="/assets/generated/avatar-average-leader-transparent.dim_400x400.png"
+        alt="Average Leader"
+        className="w-36 h-36 object-contain drop-shadow-md"
+      />
+    );
+  }
   return (
     <img
-      src={avatar.src}
-      alt={avatar.label}
+      src="/assets/generated/avatar-struggling-leader-transparent.dim_400x400.png"
+      alt="Struggling Leader"
       className="w-36 h-36 object-contain drop-shadow-md"
     />
-  );
-}
-
-// ─── Live Indicator ─────────────────────────────────────────────────────────────
-
-function LiveIndicator({ className = "" }: { className?: string }) {
-  return (
-    <span
-      data-ocid="leaderboard.live_indicator"
-      className={`inline-flex items-center gap-1.5 ${className}`}
-    >
-      <span className="relative flex h-2.5 w-2.5">
-        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75" />
-        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
-      </span>
-      <span className="text-xs font-semibold text-green-600 uppercase tracking-wider">
-        Live
-      </span>
-    </span>
-  );
-}
-
-// ─── Host View ─────────────────────────────────────────────────────────────────
-
-function HostView() {
-  const { data: entries = [], isLoading } = useGetLeaderboard();
-  const sorted = [...entries].sort(
-    (a, b) => Number(b.totalScore) - Number(a.totalScore),
-  );
-
-  const rankDisplay = (i: number) => {
-    if (i === 0) return <span className="text-4xl">🥇</span>;
-    if (i === 1) return <span className="text-4xl">🥈</span>;
-    if (i === 2) return <span className="text-4xl">🥉</span>;
-    return (
-      <span className="text-2xl font-black text-muted-foreground w-10 text-center">
-        {i + 1}
-      </span>
-    );
-  };
-
-  return (
-    <div
-      data-ocid="host.leaderboard_view"
-      className="min-h-screen bg-background flex flex-col"
-    >
-      {/* Header */}
-      <header className="py-8 px-8 border-b border-gold/20 bg-surface-raised/50">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-primary/10 border-2 border-gold/30 flex items-center justify-center">
-              <Crown className="w-9 h-9 text-gold" />
-            </div>
-            <div>
-              <h1 className="text-3xl md:text-4xl font-black tracking-tight text-foreground leading-tight">
-                Build the Best Leader
-              </h1>
-              <div className="flex items-center gap-3 mt-0.5">
-                <p className="text-xl font-semibold text-muted-foreground">
-                  Live Leaderboard
-                </p>
-                {!isLoading && sorted.length > 0 && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-bold">
-                    <Trophy className="w-3.5 h-3.5" />
-                    {sorted.length} {sorted.length === 1 ? "team" : "teams"}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-          <LiveIndicator className="scale-150 origin-right" />
-        </div>
-      </header>
-
-      {/* Board */}
-      <main className="flex-1 py-10 px-8">
-        <div className="max-w-4xl mx-auto">
-          {isLoading ? (
-            <div
-              data-ocid="host.leaderboard.loading_state"
-              className="flex flex-col items-center justify-center py-32 text-muted-foreground"
-            >
-              <Loader2 className="w-10 h-10 animate-spin mb-4" />
-              <p className="text-2xl font-semibold">Loading scores...</p>
-            </div>
-          ) : sorted.length === 0 ? (
-            <div
-              data-ocid="host.leaderboard.empty_state"
-              className="flex flex-col items-center justify-center py-32 text-muted-foreground"
-            >
-              <Crown className="w-16 h-16 mb-6 text-border" />
-              <p className="text-3xl font-black mb-2">Waiting for teams...</p>
-              <p className="text-xl">Scores will appear here as teams submit</p>
-            </div>
-          ) : (
-            <div className="max-h-[65vh] overflow-y-auto space-y-3 pr-1">
-              {sorted.map((entry, i) => {
-                const score = Number(entry.totalScore);
-                return (
-                  <motion.div
-                    key={`${entry.teamName}-${i}`}
-                    data-ocid={`host.leaderboard.row.${i + 1}`}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.06 }}
-                    className={`flex items-center gap-6 px-8 py-6 rounded-2xl border-2 ${
-                      i === 0
-                        ? "bg-primary/10 border-gold/40 shadow-gold"
-                        : i === 1
-                          ? "bg-card border-border/80"
-                          : i === 2
-                            ? "bg-card border-border/60"
-                            : "bg-card/50 border-border/30"
-                    }`}
-                  >
-                    {/* Rank */}
-                    <div className="flex items-center justify-center w-14 flex-shrink-0">
-                      {rankDisplay(i)}
-                    </div>
-
-                    {/* Rank number for top 3 */}
-                    {i < 3 && (
-                      <div className="w-10 flex-shrink-0 text-center">
-                        <span className="text-xl font-black text-muted-foreground">
-                          #{i + 1}
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Team Name */}
-                    <div className="flex-1 min-w-0">
-                      <p
-                        className={`font-black text-2xl truncate ${
-                          i === 0 ? "text-primary" : "text-foreground"
-                        }`}
-                      >
-                        {entry.teamName}
-                      </p>
-                    </div>
-
-                    {/* Score */}
-                    <div
-                      className={`text-4xl font-black flex-shrink-0 ${
-                        score > 0
-                          ? "text-primary"
-                          : score < 0
-                            ? "text-destructive"
-                            : "text-muted-foreground"
-                      }`}
-                    >
-                      {score > 0 ? "+" : ""}
-                      {score}
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </main>
-
-      {/* Footer */}
-      <footer className="py-4 text-center border-t border-gold/10">
-        <p className="text-sm text-muted-foreground/50">
-          © {new Date().getFullYear()}. Built with{" "}
-          <span className="text-red-500/60">♥</span> using{" "}
-          <a
-            href={`https://caffeine.ai?utm_source=caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(typeof window !== "undefined" ? window.location.hostname : "")}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-gold/60 hover:text-gold transition-colors"
-          >
-            caffeine.ai
-          </a>
-        </p>
-      </footer>
-    </div>
   );
 }
 
 // ─── Start Screen ──────────────────────────────────────────────────────────────
 
 function StartScreen({ onStart }: { onStart: () => void }) {
-  const handleHostView = () => {
-    const url = window.location.href.split("?")[0];
-    window.open(`${url}?host=true`, "_blank");
-  };
-
   return (
     <motion.div
       key="start"
@@ -346,7 +156,7 @@ function StartScreen({ onStart }: { onStart: () => void }) {
           Choose leadership traits and see who creates the best leader.
         </motion.p>
 
-        {/* Buttons */}
+        {/* Button */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -361,17 +171,6 @@ function StartScreen({ onStart }: { onStart: () => void }) {
           >
             Start Game
             <ChevronRight className="ml-2 w-5 h-5" />
-          </Button>
-
-          <Button
-            data-ocid="start.host_view_button"
-            onClick={handleHostView}
-            variant="outline"
-            size="sm"
-            className="w-full border-primary/30 text-primary/80 hover:bg-primary/5 hover:text-primary font-semibold rounded-xl transition-all duration-200"
-          >
-            <Monitor className="mr-2 w-4 h-4" />
-            Host View — for projecting the leaderboard
           </Button>
         </motion.div>
       </div>
@@ -583,26 +382,13 @@ function ResultsScreen({
   teamName,
   selectedTraits,
   totalScore,
-  onViewLeaderboard,
+  onPlayAgain,
 }: {
   teamName: string;
   selectedTraits: string[];
   totalScore: number;
-  onViewLeaderboard: () => void;
+  onPlayAgain: () => void;
 }) {
-  const { mutateAsync: submitEntry, isPending } = useSubmitEntry();
-
-  // Submit exactly once on mount
-  const submitted = useRef(false);
-  useEffect(() => {
-    if (submitted.current) return;
-    submitted.current = true;
-    submitEntry({ teamName, traits: selectedTraits, totalScore }).catch(() => {
-      // allow retry via button
-      submitted.current = false;
-    });
-  }, [submitEntry, teamName, selectedTraits, totalScore]);
-
   const getScoreLabel = () => {
     if (totalScore >= 10)
       return { label: "Visionary Hero", color: "text-primary" };
@@ -695,176 +481,10 @@ function ResultsScreen({
           </motion.div>
 
           <Button
-            data-ocid="results.primary_button"
-            onClick={() => {
-              // Always allow navigation to leaderboard.
-              // If still saving, navigate anyway — the leaderboard polls every 2s
-              // and will pick up the score once the save completes.
-              onViewLeaderboard();
-            }}
-            size="lg"
-            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-6 rounded-xl transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
-          >
-            {isPending ? (
-              <>
-                <Loader2 className="mr-2 w-5 h-5 animate-spin" />
-                Saving & Viewing Leaderboard...
-              </>
-            ) : (
-              <>
-                <Trophy className="mr-2 w-5 h-5" />
-                View Leaderboard
-              </>
-            )}
-          </Button>
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
-// ─── Leaderboard Screen ────────────────────────────────────────────────────────
-
-function LeaderboardScreen({ onPlayAgain }: { onPlayAgain: () => void }) {
-  const { data: entries = [], isLoading, refetch } = useGetLeaderboard();
-
-  // Force a fresh fetch immediately when this screen mounts
-  useEffect(() => {
-    refetch();
-  }, [refetch]);
-
-  const sorted = [...entries].sort(
-    (a, b) => Number(b.totalScore) - Number(a.totalScore),
-  );
-
-  const rankMedal = (i: number) => {
-    if (i === 0) return <span className="text-xl">🥇</span>;
-    if (i === 1) return <span className="text-xl">🥈</span>;
-    if (i === 2) return <span className="text-xl">🥉</span>;
-    return (
-      <span className="text-sm font-bold text-muted-foreground w-5 text-center">
-        {i + 1}
-      </span>
-    );
-  };
-
-  return (
-    <motion.div
-      key="leaderboard"
-      initial={{ opacity: 0, x: 40 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -40 }}
-      transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
-      className="flex flex-col items-center min-h-screen px-4 py-12"
-    >
-      <div className="w-full max-w-lg">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-full bg-primary/10 border-2 border-primary/30 flex items-center justify-center mx-auto mb-4">
-            <Trophy className="w-8 h-8 text-primary" />
-          </div>
-          <h2 className="text-3xl md:text-4xl font-black text-foreground mb-2">
-            Leaderboard
-          </h2>
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <LiveIndicator />
-            <span className="text-muted-foreground text-sm">
-              updates every 2 seconds
-            </span>
-          </div>
-          {!isLoading && sorted.length > 0 && (
-            <div className="flex items-center justify-center">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold tracking-wide">
-                <Trophy className="w-3 h-3" />
-                {sorted.length} {sorted.length === 1 ? "team" : "teams"}{" "}
-                competing
-              </span>
-            </div>
-          )}
-        </div>
-
-        {/* Table */}
-        <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm mb-6">
-          {isLoading ? (
-            <div
-              data-ocid="leaderboard.loading_state"
-              className="p-8 text-center text-muted-foreground"
-            >
-              <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
-              Loading scores...
-            </div>
-          ) : sorted.length === 0 ? (
-            <div
-              data-ocid="leaderboard.empty_state"
-              className="p-10 text-center text-muted-foreground"
-            >
-              <Crown className="w-10 h-10 mx-auto mb-3 text-border" />
-              <p className="font-semibold">No teams yet</p>
-              <p className="text-sm">Be the first to submit!</p>
-            </div>
-          ) : (
-            <div className="max-h-[60vh] overflow-y-auto divide-y divide-border">
-              {sorted.map((entry, i) => {
-                const score = Number(entry.totalScore);
-                return (
-                  <motion.div
-                    key={`${entry.teamName}-${i}`}
-                    data-ocid={`leaderboard.row.${i + 1}`}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.05 }}
-                    className={`flex items-center px-5 py-4 gap-3 ${
-                      i === 0 ? "bg-primary/5" : ""
-                    }`}
-                  >
-                    {/* Medal + rank number */}
-                    <div className="flex items-center gap-1.5 flex-shrink-0 min-w-[3rem]">
-                      <div className="flex items-center justify-center w-5">
-                        {rankMedal(i)}
-                      </div>
-                      {i < 3 && (
-                        <span className="text-xs font-bold text-muted-foreground">
-                          #{i + 1}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p
-                        className={`font-bold text-base truncate ${i === 0 ? "text-primary" : "text-foreground"}`}
-                      >
-                        {entry.teamName}
-                      </p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {entry.traits.slice(0, 3).join(", ")}
-                        {entry.traits.length > 3 ? "…" : ""}
-                      </p>
-                    </div>
-                    <div
-                      className={`text-xl font-black flex-shrink-0 ${
-                        score > 0
-                          ? "text-primary"
-                          : score < 0
-                            ? "text-destructive"
-                            : "text-muted-foreground"
-                      }`}
-                    >
-                      {score > 0 ? "+" : ""}
-                      {score}
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Actions */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <Button
-            data-ocid="leaderboard.play_again_button"
+            data-ocid="results.play_again_button"
             onClick={onPlayAgain}
             size="lg"
-            className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-6 rounded-xl transition-all duration-200 hover:scale-[1.01]"
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-6 rounded-xl transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
           >
             Play Again
           </Button>
@@ -882,11 +502,6 @@ export default function App() {
   const [selectedTraits, setSelectedTraits] = useState<string[]>([]);
   const [totalScore, setTotalScore] = useState(0);
 
-  // Check for host view mode
-  const isHostView =
-    typeof window !== "undefined" &&
-    new URLSearchParams(window.location.search).get("host") === "true";
-
   // Shuffle once on mount, stable for the session
   const shuffledTraits = useMemo(() => shuffleArray(ALL_TRAITS), []);
 
@@ -900,18 +515,12 @@ export default function App() {
     setTotalScore(score);
     setStep("results");
   };
-  const handleViewLeaderboard = () => setStep("leaderboard");
   const handlePlayAgain = () => {
     setTeamName("");
     setSelectedTraits([]);
     setTotalScore(0);
     setStep("team");
   };
-
-  // Host view — fullscreen leaderboard for projector
-  if (isHostView) {
-    return <HostView />;
-  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -945,12 +554,6 @@ export default function App() {
               teamName={teamName}
               selectedTraits={selectedTraits}
               totalScore={totalScore}
-              onViewLeaderboard={handleViewLeaderboard}
-            />
-          )}
-          {step === "leaderboard" && (
-            <LeaderboardScreen
-              key="leaderboard"
               onPlayAgain={handlePlayAgain}
             />
           )}

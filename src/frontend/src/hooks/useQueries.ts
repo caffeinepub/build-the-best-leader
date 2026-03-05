@@ -3,17 +3,17 @@ import type { TeamEntry } from "../backend.d.ts";
 import { useActor } from "./useActor";
 
 export function useGetLeaderboard() {
-  const { actor, isFetching } = useActor();
+  const { actor } = useActor();
   return useQuery<TeamEntry[]>({
     queryKey: ["leaderboard"],
     queryFn: async () => {
       if (!actor) return [];
       return actor.getLeaderboard();
     },
-    enabled: !!actor && !isFetching,
+    enabled: !!actor,
     refetchInterval: 2000,
     staleTime: 0,
-    gcTime: 0,
+    gcTime: 60000,
   });
 }
 
